@@ -131,15 +131,16 @@ func (cc *ClusterContext) schedule() bool {
 		}
 		// try reservations first
 		schedulingStart := time.Now()
-		alloc := psc.tryReservedAllocate()
-		if alloc == nil {
-			// placeholder replacement second
-			alloc = psc.tryPlaceholderAllocate()
-			// nothing reserved that can be allocated try normal allocate
-			if alloc == nil {
-				alloc = psc.tryAllocate()
-			}
-		}
+		// alloc := psc.tryReservedAllocate()
+		// if alloc == nil {
+		// 	// placeholder replacement second
+		// 	alloc = psc.tryPlaceholderAllocate()
+		// 	// nothing reserved that can be allocated try normal allocate
+		// 	if alloc == nil {
+		// 		alloc = psc.tryAllocate()
+		// 	}
+		// }
+		alloc := psc.tryAllocate()
 		if alloc != nil {
 			metrics.GetSchedulerMetrics().ObserveSchedulingLatency(schedulingStart)
 			if alloc.GetResult() == objects.Replaced {
