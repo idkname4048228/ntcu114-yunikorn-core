@@ -1371,7 +1371,7 @@ func (sq *Queue) canRunApp(appID string) bool {
 // resources are skipped.
 // Applications are sorted based on the application sortPolicy. Applications without pending resources are skipped.
 // Lock free call this all locks are taken when needed in called functions
-func (sq *Queue) TryAllocate(iterator func() NodeIterator, fullIterator func() NodeIterator, getnode func(string) *Node, allowPreemption bool, selectedNode *Node) *Allocation {
+func (sq *Queue) TryAllocate(iterator func() NodeIterator, fullIterator func() NodeIterator, getnode func(string) *Node, allowPreemption bool) *Allocation {
 	if sq.IsLeafQueue() {
 		// get the headroom
 		headRoom := sq.getHeadRoom()
@@ -1386,7 +1386,7 @@ func (sq *Queue) TryAllocate(iterator func() NodeIterator, fullIterator func() N
 			if app.IsAccepted() && (!runnableInQueue || !runnableByUserLimit) {
 				continue
 			}
-			alloc := app.tryAllocate(headRoom, allowPreemption, preemptionDelay, &preemptAttemptsRemaining, iterator, fullIterator, getnode, selectedNode)
+			alloc := app.tryAllocate(headRoom, allowPreemption, preemptionDelay, &preemptAttemptsRemaining, iterator, fullIterator, getnode)
 			if alloc != nil {
 				log.Log(log.SchedQueue).Info("allocation found on queue",
 					zap.String("queueName", sq.QueuePath),
@@ -1403,7 +1403,7 @@ func (sq *Queue) TryAllocate(iterator func() NodeIterator, fullIterator func() N
 	} else {
 		// process the child queues (filters out queues without pending requests)
 		for _, child := range sq.sortQueues() {
-			alloc := child.TryAllocate(iterator, fullIterator, getnode, allowPreemption, selectedNode)
+			alloc := child.TryAllocate(iterator, fullIterator, getnode, allowPreemption)
 			if alloc != nil {
 				return alloc
 			}

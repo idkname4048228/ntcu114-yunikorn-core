@@ -29,7 +29,7 @@ import (
 	"github.com/apache/yunikorn-core/pkg/log"
 	"github.com/apache/yunikorn-core/pkg/scheduler/policies"
 
-	rr "github.com/apache/yunikorn-core/pkg/custom"
+	// rr "github.com/apache/yunikorn-core/pkg/custom"
 )
 
 var acceptUnreserved = func(node *Node) bool {
@@ -49,7 +49,6 @@ type NodeCollection interface {
 	GetNodeCount() int
 	GetNodes() []*Node
 	GetNodeIterator() NodeIterator
-	GetCurNode() *Node // for round robin
 	GetFullNodeIterator() NodeIterator
 	SetNodeSortingPolicy(policy NodeSortingPolicy)
 	GetNodeSortingPolicy() NodeSortingPolicy
@@ -114,7 +113,7 @@ func (nc *baseNodeCollection) AddNode(node *Node) error {
 	}
 	nc.nodes[node.NodeID] = &nref
 	// nc.queue.PushBack(nref)
-	rr.GetRoundRobin().Add(nref)
+	// rr.GetRoundRobin().Add(nref)
 	// log.Log(log.Core).Info("add node :" + nref.node.NodeID)
 	nc.sortedNodes.ReplaceOrInsert(nref)
 	return nil
@@ -144,7 +143,7 @@ func (nc *baseNodeCollection) RemoveNode(nodeID string) *Node {
 
 	// Remove node from list of tracked nodes
 	// RemoveElementFromQueue(nc.queue, *nref)
-	rr.GetRoundRobin().RemoveNode(*nref);
+	// rr.GetRoundRobin().RemoveNode(*nref);
 	nc.sortedNodes.Delete(*nref)
 	delete(nc.nodes, nodeID)
 	nref.node.RemoveListener(nc)
@@ -180,30 +179,6 @@ func (nc *baseNodeCollection) GetNodes() []*Node {
 	}
 	return nodes
 }
-
-func PrintQueue(queue *list.List){
-	fmt.Println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-	for e := queue.Front(); e != nil; e = e.Next() {
-		fmt.Printf("%v ", e.Value);
-	}
-	fmt.Println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-	fmt.Println();
-}
-
-func (nc *baseNodeCollection) GetCurNode() *Node {
-	curNode := rr.GetRoundRobin().GetCurNode().(nodeRef).node;
-	log.Log(log.SchedContext).Info("cur node   " + curNode.NodeID);
-	return curNode;
-}
-
-// func (nc *baseNodeCollection) GetCurNode() *Node {
-// 	front := nc.queue.Front()
-// 	curNodeNref := front.Value.(nodeRef)
-// 	log.Log(log.SchedContext).Info("cur node   " + curNodeNref.node.NodeID);
-// 	nc.queue.Remove(front)
-// 	nc.queue.PushBack(curNodeNref)
-// 	return curNodeNref.node
-// }
 
 // Create an ordered node iterator for unreserved nodes based on the sort policy set for this collection.
 // The iterator is nil if there are no unreserved nodes available.
@@ -280,6 +255,6 @@ func NewNodeCollection(partition string) NodeCollection {
 	bsc.fullIterator = fullIterator
 	bsc.unreservedIterator = unreservedIterator
 
-	rr.Init();
+
 	return bsc
 }

@@ -824,7 +824,7 @@ func (pc *PartitionContext) tryAllocate() *objects.Allocation {
 		return nil
 	}
 	// try allocating from the root down
-	alloc := pc.root.TryAllocate(pc.GetNodeIterator, pc.GetFullNodeIterator, pc.GetNode, pc.isPreemptionEnabled(), pc.GetCurNode())
+	alloc := pc.root.TryAllocate(pc.GetNodeIterator, pc.GetFullNodeIterator, pc.GetNode, pc.isPreemptionEnabled())
 	if alloc != nil {
 		return pc.allocate(alloc)
 	}
@@ -988,11 +988,6 @@ func (pc *PartitionContext) unReserve(app *objects.Application, node *objects.No
 		zap.String("allocationKey", ask.GetAllocationKey()),
 		zap.String("node", node.NodeID),
 		zap.Int("reservationsRemoved", num))
-}
-
-// getNode according to round robin 
-func (pc *PartitionContext) GetCurNode() *objects.Node {
-	return pc.nodes.GetCurNode();
 }
 
 // Create an ordered node iterator based on the node sort policy set for this partition.

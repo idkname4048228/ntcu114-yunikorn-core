@@ -83,6 +83,7 @@ var (
 	Security         = &LoggerHandle{id: 26, name: "core.security"}
 	Utils            = &LoggerHandle{id: 27, name: "core.utils"}
 	Diagnostics      = &LoggerHandle{id: 28, name: "core.diagnostics"}
+	Custom 			 = &LoggerHandle{id:29, name: "core.custom"}
 )
 
 // this tracks all the known logger handles, used to preallocate the real logger instances when configuration changes
@@ -90,6 +91,7 @@ var loggers = []*LoggerHandle{
 	Core, Test, Deprecation, Config, Entrypoint, Events, OpenTracing, Resources, REST, RMProxy, RPC, Metrics,
 	Scheduler, SchedAllocation, SchedApplication, SchedAppUsage, SchedContext, SchedFSM, SchedHealth, SchedNode,
 	SchedPartition, SchedPreemption, SchedQueue, SchedReservation, SchedUGM, SchedNodesUsage, Security, Utils, Diagnostics,
+	Custom,
 }
 
 // structure to hold all current logger configuration state
