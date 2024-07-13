@@ -33,6 +33,7 @@ import (
 	"github.com/apache/yunikorn-core/pkg/common/configs"
 	"github.com/apache/yunikorn-core/pkg/common/resources"
 	"github.com/apache/yunikorn-core/pkg/common/security"
+	GOA "github.com/apache/yunikorn-core/pkg/custom/GOA"
 	"github.com/apache/yunikorn-core/pkg/locking"
 	"github.com/apache/yunikorn-core/pkg/log"
 	"github.com/apache/yunikorn-core/pkg/metrics"
@@ -549,6 +550,8 @@ func (pc *PartitionContext) AddNode(node *objects.Node, existingAllocations []*o
 	if err := pc.addNodeToList(node); err != nil {
 		return err
 	}
+
+	GOA.GetGOA().AddNode(node)
 
 	// Add allocations that exist on the node when added
 	if len(existingAllocations) > 0 {
