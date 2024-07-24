@@ -10,3 +10,4 @@
 /coverage.txt
 yunikorn-state.txt
 /shellcheck
+/pkg/custom/GOA/tmp.txt
