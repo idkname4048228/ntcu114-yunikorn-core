@@ -658,6 +658,8 @@ func (sa *Application) AddAllocationAsk(ask *AllocationAsk) error {
 	sa.pending = resources.Add(sa.pending, delta)
 	sa.queue.incPendingResource(delta)
 
+
+
 	log.Log(log.SchedApplication).Info("ask added successfully to application",
 		zap.String("appID", sa.ApplicationID),
 		zap.String("user", sa.user.User),

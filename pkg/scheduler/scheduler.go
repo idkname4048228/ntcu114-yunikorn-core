@@ -81,14 +81,19 @@ func (s *Scheduler) internalSchedule() {
 			return
 		case <-s.activityPending:
 			// activity pending
-		case <-time.After(100 * time.Millisecond):
+		case <-time.After(10 * time.Second):
+			log.Log(log.Custom).Info("schedule anyway")
 			// timeout, run scheduler anyway
 		}
 
-		if s.clusterContext.schedule() {
+		// if s.clusterContext.schedule() {
+			// s.registerActivity()
+		// }
+		if s.clusterContext.customSchedule() {
 			s.registerActivity()
 		}
 	}
+	
 }
 
 func (s *Scheduler) internalInspectOutstandingRequests() {

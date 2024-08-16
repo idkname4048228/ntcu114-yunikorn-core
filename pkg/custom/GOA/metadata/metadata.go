@@ -1,7 +1,9 @@
 package metadata
 
 import (
+	"fmt"
 	"math"
+	"sync"
 
 	"github.com/apache/yunikorn-core/pkg/scheduler/objects"
 
@@ -9,6 +11,7 @@ import (
 	UserData "github.com/apache/yunikorn-core/pkg/custom/GOA/metadata/user"
 
 	sicommon "github.com/apache/yunikorn-scheduler-interface/lib/go/common"
+	"github.com/apache/yunikorn-core/pkg/log"
 )
 
 var (
@@ -16,17 +19,22 @@ var (
 )
 
 type MetaData struct {
-	UserData           *UserData.UserData
-	NodeData           *NodeData.NodeData
-	DRs                [][]float64
-	DRRatioReciprocals [][]float64
+	UserData           	*UserData.UserData
+	NodeData           	*NodeData.NodeData
+	DRs                	[][]float64
+	DRRatioReciprocals 	[][]float64
+
+	Nodes 				[]string
+	Requests 			[]*objects.AllocationAsk
+
+	sync.RWMutex
 }
 
 func NewMetaData() *MetaData {
 	return &MetaData{
-		UserData: UserData.NewUserData(ResourceTypes),
-		NodeData: NodeData.NewNodeData(ResourceTypes),
-		DRs: make([][]float64, 0),
+		UserData:           UserData.NewUserData(ResourceTypes),
+		NodeData:           NodeData.NewNodeData(ResourceTypes),
+		DRs:                make([][]float64, 0),
 		DRRatioReciprocals: make([][]float64, 0),
 	}
 }
@@ -42,12 +50,25 @@ func (metaData *MetaData) GetNodeLimits() [][]float64 {
 func (metaData *MetaData) GetTotalLimits() []float64 {
 	return metaData.NodeData.TotalLimits
 }
-func (metaData *MetaData) AddUser(app *objects.Application) {
-	metaData.UserData.AddUser(app)
+
+func (metaData *MetaData) AddUser(ask *objects.AllocationAsk, app *objects.Application) {
+	log.Log(log.Custom).Info("metadata add user")
+	metaData.Requests = append(metaData.Requests, ask)
+	metaData.UserData.AddUser(ask, app)
+	log.Log(log.Custom).Info(fmt.Sprintf("GOA add ask: %v", ask.GetAllocationKey()))
+	log.Log(log.Custom).Info(fmt.Sprintf("GOA add ask: %v", ask.GetAllocatedResource()))
+}
+
+func (metaData *MetaData) RemoveUser(index int) {
+	log.Log(log.Custom).Info(fmt.Sprintf("removing index %v, and length is %v", index, len(metaData.Requests)))
+	metaData.Requests = append(metaData.Requests[:index], metaData.Requests[index + 1:]...)
+	metaData.UserData.RemoveUser(index)
 }
 
 func (metaData *MetaData) AddNode(node *objects.Node) {
+	metaData.Nodes = append(metaData.Nodes, node.NodeID)
 	metaData.NodeData.AddNode(node)
+	log.Log(log.Custom).Info(fmt.Sprintf("add node: %v", node.NodeID))
 }
 
 func (metaData *MetaData) CalculateDRs() {

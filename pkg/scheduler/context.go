@@ -38,6 +38,8 @@ import (
 	"github.com/apache/yunikorn-core/pkg/webservice/dao"
 	siCommon "github.com/apache/yunikorn-scheduler-interface/lib/go/common"
 	"github.com/apache/yunikorn-scheduler-interface/lib/go/si"
+
+	GOA "github.com/apache/yunikorn-core/pkg/custom/GOA"
 )
 
 const disableReservation = "DISABLE_RESERVATION"
@@ -151,6 +153,35 @@ func (cc *ClusterContext) schedule() bool {
 			}
 			activity = true
 		}
+	}
+	return activity
+}
+
+func (cc *ClusterContext) customSchedule() bool {
+	activity := false
+	for _, psc := range cc.GetPartitionMapClone() {
+		if psc.root.GetMaxResource() == nil {
+			continue
+		}
+		if psc.isStopped() {
+			continue
+		}
+
+		schedulingStart := time.Now()
+
+		allocs := GOA.GetGOA().GetAllocations()
+		for _, alloc := range allocs {
+			if alloc != nil {
+				metrics.GetSchedulerMetrics().ObserveSchedulingLatency(schedulingStart)
+				if alloc.GetResult() == objects.Replaced {
+					// communicate the removal to the RM
+					cc.notifyRMAllocationReleased(psc.RmID, alloc.GetReleasesClone(), si.TerminationType_PLACEHOLDER_REPLACED, "replacing allocationID: "+alloc.GetAllocationID())
+				} else {
+					cc.notifyRMNewAllocation(psc.RmID, alloc)
+				}
+			}
+		}
+		activity = true
 	}
 	return activity
 }

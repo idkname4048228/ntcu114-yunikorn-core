@@ -26,3 +26,82 @@ python 的可以穩定算出最佳解(目前以公平性來看)，而 go 是沒�
 之後找個時間解決這個問題。
 
 ## 現在目標：試著將 GOA 應用在 YuniKorn 排程
+成功搞定
+
+將 addUser, addNode 加在 partition 裡面
+去 entrypoint 初始化 GOA
+在 schedule 那邊執行
+
+### 使用的 yaml 檔
+```
+apiVersion: batch/v1
+kind: Job
+metadata:
+    name: pi
+    namespace: testjob
+spec:
+    template:
+        metadata:
+            labels:
+                applicationId: "app1"
+            annotations:
+                yunikorn.apache.org/user.info: "
+                {
+                    \"user\": \"user1\",
+                    \"groups\": [
+                        \"developers\",
+                        \"devops\"
+                    ]
+                }"
+        spec:
+            schedulerName: yunikorn
+            containers:
+              - name: pi
+                image: perl:5.34.0
+                resources:
+                    requests:
+                        memory: "256Mi"
+                        cpu: "0.5"
+                    limits:
+                        memory: "512Mi"
+                        cpu: "1"
+                command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(1000)"]
+            restartPolicy: Never
+```
+以及
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      schedulerName: yunikorn
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        resources:
+          requests:
+              memory: "256Mi"
+              cpu: "0.5"
+          limits:
+              memory: "512Mi"
+              cpu: "1"
+        ports:
+        - containerPort: 80
+```
+
+### 遇到的小問題
+應該要重構一下 GOA ，像是 userCount 就一堆地方都有
+
+有嘗試在 entrypoint 那邊修改排程的間隔，但好像沒有用，要再研究看看要在哪裡改

@@ -551,6 +551,7 @@ func (pc *PartitionContext) AddNode(node *objects.Node, existingAllocations []*o
 		return err
 	}
 
+	log.Log(log.Custom).Info("GOA add Node")
 	GOA.GetGOA().AddNode(node)
 
 	// Add allocations that exist on the node when added
@@ -1425,7 +1426,13 @@ func (pc *PartitionContext) addAllocationAsk(siAsk *si.AllocationAsk) error {
 		return fmt.Errorf("failed to find application %s, for allocation ask %s", siAsk.ApplicationID, siAsk.AllocationKey)
 	}
 	// add the allocation asks to the app
-	return app.AddAllocationAsk(objects.NewAllocationAskFromSI(siAsk))
+	ask := objects.NewAllocationAskFromSI(siAsk)
+	if er := app.AddAllocationAsk(ask); er != nil {
+		return er
+	}
+	log.Log(log.Custom).Info("GOA add user")
+	GOA.GetGOA().AddUser(ask, app)
+	return nil 
 }
 
 func (pc *PartitionContext) GetCurrentState() string {
