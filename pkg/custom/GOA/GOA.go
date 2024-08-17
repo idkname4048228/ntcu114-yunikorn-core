@@ -298,7 +298,6 @@ func (goa *GOA) GetAllocations() (allocs []*objects.Allocation) {
 
 	for nodeIndex, _ := range goa.metaData.Nodes {
 		for userIndex, _ := range goa.metaData.Requests {
-
 			if distributeAmount := decision[nodeIndex * users + userIndex]; distributeAmount != 0 {
 				nodeId := goa.metaData.Nodes[nodeIndex]
 				ask := goa.metaData.Requests[userIndex]

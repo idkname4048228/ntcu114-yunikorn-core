@@ -1,5 +1,10 @@
 # NTCU 114級 畢業專題
 
+## 現在的目標： COA (螞蟻演算法)
+
+
+
+
 ## 上一個目標：試著利用外接的程式檔案
 
 實作請參考[筆記](https://hackmd.io/@ntcu-k8s/S1tny9dG0)
@@ -25,7 +30,7 @@ python 的可以穩定算出最佳解(目前以公平性來看)，而 go 是沒�
 
 之後找個時間解決這個問題。
 
-## 現在目標：試著將 GOA 應用在 YuniKorn 排程
+## 上一個目標：試著將 GOA 應用在 YuniKorn 排程
 成功搞定
 
 將 addUser, addNode 加在 partition 裡面
@@ -105,3 +110,5 @@ spec:
 應該要重構一下 GOA ，像是 userCount 就一堆地方都有
 
 有嘗試在 entrypoint 那邊修改排程的間隔，但好像沒有用，要再研究看看要在哪裡改
+
+現在只排程 AllocationAsk ，應該要排程 Application ，要記得修改
