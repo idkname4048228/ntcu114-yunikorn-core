@@ -112,3 +112,5 @@ spec:
 有嘗試在 entrypoint 那邊修改排程的間隔，但好像沒有用，要再研究看看要在哪裡改
 
 現在只排程 AllocationAsk ，應該要排程 Application ，要記得修改
+
+在排程後沒有更新 node 的資訊
