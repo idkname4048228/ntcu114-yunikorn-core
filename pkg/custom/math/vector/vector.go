@@ -186,9 +186,16 @@ func Divide(v *Vector, value float64) *Vector {
 }
 
 // Multiple
-func (v *Vector) Multiple(value float64) *Vector {
+func (v *Vector) Multiple(value float64) {
     for i := 0; i < v.Length(); i++ {
         v.Set(i, v.Get(i) * value)
     }
-    return v
+}
+
+func Multiple(v *Vector, value float64) *Vector{
+    result := WithSize(v.Length())
+    for i := 0; i < v.Length(); i++ {
+        result.Set(i, v.Get(i) * value)
+    }
+    return result
 }

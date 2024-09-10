@@ -33,7 +33,7 @@ import (
 	"github.com/apache/yunikorn-core/pkg/common/configs"
 	"github.com/apache/yunikorn-core/pkg/common/resources"
 	"github.com/apache/yunikorn-core/pkg/common/security"
-	GOA "github.com/apache/yunikorn-core/pkg/custom/GOA"
+	"github.com/apache/yunikorn-core/pkg/custom/AGA"
 	"github.com/apache/yunikorn-core/pkg/locking"
 	"github.com/apache/yunikorn-core/pkg/log"
 	"github.com/apache/yunikorn-core/pkg/metrics"
@@ -551,8 +551,8 @@ func (pc *PartitionContext) AddNode(node *objects.Node, existingAllocations []*o
 		return err
 	}
 
-	log.Log(log.Custom).Info("GOA add Node")
-	GOA.GetGOA().AddNode(node)
+	log.Log(log.Custom).Info("Custom algorithm add Node")
+	AGA.GetAGA().AddNode(node)
 
 	// Add allocations that exist on the node when added
 	if len(existingAllocations) > 0 {
@@ -1430,8 +1430,8 @@ func (pc *PartitionContext) addAllocationAsk(siAsk *si.AllocationAsk) error {
 	if er := app.AddAllocationAsk(ask); er != nil {
 		return er
 	}
-	log.Log(log.Custom).Info("GOA add user")
-	GOA.GetGOA().AddUser(ask, app)
+	log.Log(log.Custom).Info("Custom algorithm add user")
+	AGA.GetAGA().AddUser(ask, app)
 	return nil 
 }
 

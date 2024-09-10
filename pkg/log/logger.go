@@ -83,7 +83,7 @@ var (
 	Security         = &LoggerHandle{id: 26, name: "core.security"}
 	Utils            = &LoggerHandle{id: 27, name: "core.utils"}
 	Diagnostics      = &LoggerHandle{id: 28, name: "core.diagnostics"}
-	Custom 			 = &LoggerHandle{id:29, name: "core.custom"}
+	Custom 			 = &LoggerHandle{id: 29, name: "core.custom"}
 )
 
 // this tracks all the known logger handles, used to preallocate the real logger instances when configuration changes

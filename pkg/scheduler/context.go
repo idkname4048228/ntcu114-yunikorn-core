@@ -39,7 +39,7 @@ import (
 	siCommon "github.com/apache/yunikorn-scheduler-interface/lib/go/common"
 	"github.com/apache/yunikorn-scheduler-interface/lib/go/si"
 
-	GOA "github.com/apache/yunikorn-core/pkg/custom/GOA"
+	"github.com/apache/yunikorn-core/pkg/custom/AGA"
 )
 
 const disableReservation = "DISABLE_RESERVATION"
@@ -169,7 +169,12 @@ func (cc *ClusterContext) customSchedule() bool {
 
 		schedulingStart := time.Now()
 
-		allocs := GOA.GetGOA().GetAllocations()
+		allocs := AGA.GetAGA().GetAllocations()
+		
+		if len(allocs) != 0 {
+			log.Log(log.Custom).Info("AGA successful")
+		}
+
 		for _, alloc := range allocs {
 			if alloc != nil {
 				metrics.GetSchedulerMetrics().ObserveSchedulingLatency(schedulingStart)

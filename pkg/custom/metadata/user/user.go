@@ -52,6 +52,7 @@ func (userData *UserData) AddUser(ask *objects.AllocationAsk, app *objects.Appli
 }
 
 func (userData *UserData) RemoveUser(index int) {
+	userData.UserCount -= 1
 	userData.Requests = append(userData.Requests[:index], userData.Requests[index + 1:]...)
 	userData.UserAsks = append(userData.UserAsks[:index], userData.UserAsks[index + 1:]...)
 }

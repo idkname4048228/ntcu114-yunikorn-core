@@ -21,7 +21,7 @@ package entrypoint
 import (
 	"go.uber.org/zap"
 
-	"github.com/apache/yunikorn-core/pkg/custom/GOA"
+	"github.com/apache/yunikorn-core/pkg/custom/AGA"
 
 	"github.com/apache/yunikorn-core/pkg/events"
 	"github.com/apache/yunikorn-core/pkg/handler"
@@ -41,7 +41,7 @@ type startupOptions struct {
 }
 
 func StartAllServices() *ServiceContext {
-	GOA.Init()
+	AGA.Init()
 	log.Log(log.Entrypoint).Info("ServiceContext start all services")
 	return startAllServicesWithParameters(
 		startupOptions{

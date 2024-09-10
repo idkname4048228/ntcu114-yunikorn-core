@@ -79,9 +79,9 @@ func (s *Scheduler) internalSchedule() {
 		select {
 		case <-s.stop:
 			return
-		case <-s.activityPending:
+		// case <-s.activityPending:
 			// activity pending
-		case <-time.After(10 * time.Second):
+		case <-time.After(30 * time.Second):
 			log.Log(log.Custom).Info("schedule anyway")
 			// timeout, run scheduler anyway
 		}

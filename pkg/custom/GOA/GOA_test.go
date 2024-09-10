@@ -2,14 +2,17 @@ package GOA
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 	"testing"
-	"reflect"
+	// "reflect"
 
-	"github.com/apache/yunikorn-core/pkg/custom/GOA/math/vector"
-	"github.com/apache/yunikorn-core/pkg/custom/GOA/metadata"
+	"github.com/apache/yunikorn-core/pkg/custom/math/vector"
+	Metadata "github.com/apache/yunikorn-core/pkg/custom/metadata"
 
-	NodeData "github.com/apache/yunikorn-core/pkg/custom/GOA/metadata/node"
-	UserData "github.com/apache/yunikorn-core/pkg/custom/GOA/metadata/user"
+	NodeData "github.com/apache/yunikorn-core/pkg/custom/metadata/node"
+	UserData "github.com/apache/yunikorn-core/pkg/custom/metadata/user"
+	agamath "github.com/apache/yunikorn-core/pkg/custom/math"
 
 	"github.com/apache/yunikorn-core/pkg/log"
 	sicommon "github.com/apache/yunikorn-scheduler-interface/lib/go/common"
@@ -19,14 +22,17 @@ var (
 	ResourceTypes = []string{sicommon.CPU, sicommon.Memory}
 )
 
-func initBasicParameter() (metaData *metadata.MetaData) {
+func initBasicParameter() (metaData *Metadata.Metadata) {
 	userData := UserData.NewUserData(ResourceTypes)
-	userData.AddUserDirectly("userA", []float64{1, 4})
-	userData.AddUserDirectly("userB", []float64{3, 1})
-	nodeData := NodeData.NewNodeData(ResourceTypes)
-	nodeData.AddNodeDirectly("nodeA", []float64{18, 28})
+	userData.AddUserDirectly("userA", []float64{1, 2})
+	userData.AddUserDirectly("userB", []float64{1, 1})
+	userData.AddUserDirectly("userC", []float64{2, 1})
 
-	metaData = &metadata.MetaData{
+	nodeData := NodeData.NewNodeData(ResourceTypes)
+	nodeData.AddNodeDirectly("nodeA", []float64{100, 250})
+	nodeData.AddNodeDirectly("nodeB", []float64{150, 200})
+
+	metaData = &Metadata.Metadata{
 		UserData: userData,
 		NodeData: nodeData,
 	}
@@ -37,40 +43,72 @@ func initBasicParameter() (metaData *metadata.MetaData) {
 	return 
 }
 
-func TestStartScheduler(t *testing.T) {
-	metaData := initBasicParameter()
-	log.Log(log.Custom).Info(fmt.Sprintf("metadata be like: %v", metaData))
-	goa = &GOA{
-		metaData: metaData,
-		nodeCount: metaData.NodeData.NodeCount,
-		resourceCount: metaData.NodeData.ResourceCount,
-		userCount: metaData.UserData.UserCount, 
-		grasshoppers: make([]*vector.Vector, grasshopperAmount),
+func randanInitValue(metadata *Metadata.Metadata) []*vector.Vector{
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	users := metadata.UserData.UserCount
+	nodes := metadata.NodeData.NodeCount
+
+	candidates := make([]*vector.Vector, 0)
+
+	for i := 0; i < 20; i++ {
+		candidateArray := make([]int, users*nodes)
+		for j := 0; j < len(candidateArray); j++ {
+			candidateArray[j] = int(r.Int63n(6))
+		}
+		candidate := vector.NewVectorByInt(candidateArray)
+		candidates = append(candidates, candidate)
+	} 
+	return candidates
+}
+
+func TestStart(t *testing.T) {
+	metadata := initBasicParameter()
+	log.Log(log.Custom).Info(fmt.Sprintf("metadata be like: %v", metadata))
+	goa := &GOA{
+		metadata: metadata,
 	}
+	// GOA hyperParameter
+	const (
+		GOA_iterations = 10 
+		GOA_cMax = 1.0
+		GOA_cMin = 0.00001
+		GOA_grasshopperAmount = 10
+		GOA_GForce = 0.2
+		GOA_WindForce = 0.2
+	)
+	GOAParameter := NewGOAHyperParameter(
+		GOA_iterations, 
+		GOA_cMax, 
+		GOA_cMin, 
+		GOA_grasshopperAmount,	
+		GOA_GForce, 
+		GOA_WindForce, 
+	)
+	goa.SetHyperParameter(GOAParameter)	
+	candidates := randanInitValue(metadata)
 
 	log.Log(log.Custom).Info(fmt.Sprintf("basis goa: %v", goa))
-	decision := goa.StartScheduler()
+	decision := goa.Start(candidates)
 
-    expected := []int{6, 4}
-
-    if !reflect.DeepEqual(decision, expected) {
-		t.Errorf("Expected answer wiil be [6, 4], but got %v", decision)
-	}
+	check := vector.NewVectorByInt(decision)
+	fmt.Println("check score: ", agamath.GetScore(metadata, check))
+	fmt.Println("check effect: ", agamath.GetEffectScore(metadata, check))
+	fmt.Println("check fair: ", agamath.GetFairnessScore(metadata, check))
+	
+	metadata.CalculateGlobalDRs()
+	fmt.Println("check globalDRs: ", metadata.GlobalDRRatioReciprocals)
 }
 
 func Test_getGravityUnitVector(t *testing.T) {
-	metaData := initBasicParameter()
-	goa = &GOA{
-		metaData: metaData,
-		nodeCount: metaData.NodeData.NodeCount,
-		resourceCount: metaData.NodeData.ResourceCount,
-		userCount: metaData.UserData.UserCount, 
-		grasshoppers: make([]*vector.Vector, grasshopperAmount),
+	metadata := initBasicParameter()
+	goa := &GOA{
+		metadata: metadata,
 	}
 	
 	goa.calculateDomainResources()
 
-	except := vector.NewVectorByInt([]int{3, 2})
+	except := vector.NewVectorByInt([]int{2, 2})
 	other := vector.NewVectorByInt([]int{4, 1})
 	v1 := goa.getGravityUnitVector(except)
 	v2 := goa.getGravityUnitVector(other)
@@ -78,35 +116,43 @@ func Test_getGravityUnitVector(t *testing.T) {
 } 
 
 func Test_getEffectScore(t *testing.T) {
-	metaData := initBasicParameter()
-	log.Log(log.Custom).Info(fmt.Sprintf("metadata be like: %v", metaData))
-	goa = &GOA{
-		metaData: metaData,
-		nodeCount: metaData.NodeData.NodeCount,
-		resourceCount: metaData.NodeData.ResourceCount,
-		userCount: metaData.UserData.UserCount, 
-		grasshoppers: make([]*vector.Vector, grasshopperAmount),
-	}
+	metadata := initBasicParameter()
+	log.Log(log.Custom).Info(fmt.Sprintf("metadata be like: %v", metadata))
 
-	except := vector.NewVector([]float64{4.852167171869434, 0.7797597317740037})
-	fmt.Println("except: ", goa.getEffectScore(except))
-	
+	metadata.CalculateDRs()
+
+	a := vector.NewVector([]float64{6, 4})
+	fmt.Println("except: ", agamath.GetEffectScore(metadata, a))
+	b := vector.NewVector([]float64{5, 5})
+	fmt.Println("except: ", agamath.GetEffectScore(metadata, b))	
 }
+
+func Test_getFairnessScore(t *testing.T) {
+	metadata := initBasicParameter()
+	log.Log(log.Custom).Info(fmt.Sprintf("metadata be like: %v", metadata))
+
+	metadata.CalculateDRs()
+
+	a := vector.NewVector([]float64{6, 4})
+	fmt.Println("{6, 4} fair: ", agamath.GetFairnessScore(metadata, a))
+	
+	b := vector.NewVector([]float64{5, 5})
+	fmt.Println("{5, 5} fair: ", agamath.GetFairnessScore(metadata, b))
+}
+
 func Test_getScore(t *testing.T) {
-	metaData := initBasicParameter()
-	log.Log(log.Custom).Info(fmt.Sprintf("metadata be like: %v", metaData))
-	goa = &GOA{
-		metaData: metaData,
-		nodeCount: metaData.NodeData.NodeCount,
-		resourceCount: metaData.NodeData.ResourceCount,
-		userCount: metaData.UserData.UserCount, 
-		grasshoppers: make([]*vector.Vector, grasshopperAmount),
-	}
+	metadata := initBasicParameter()
+	log.Log(log.Custom).Info(fmt.Sprintf("metadata be like: %v", metadata))
 
-	goa.calculateDomainResources()
+	metadata.CalculateDRs()
 
-	except := vector.NewVector([]float64{4.852167171869434, 0.7797597317740037})
-	fmt.Println("except: ", goa.getScore(except))
-	fmt.Println("except: ", goa.getEffectScore(except))
-	fmt.Println("except: ", goa.getFairnessScore(except))
+	a := vector.NewVector([]float64{6, 4})
+	fmt.Println("{6, 4} score: ", agamath.GetScore(metadata, a))
+	fmt.Println("{6, 4} effect: ", agamath.GetEffectScore(metadata, a))
+	fmt.Println("{6, 4} fair: ", agamath.GetFairnessScore(metadata, a))
+	
+	b := vector.NewVector([]float64{5, 5})
+	fmt.Println("{5, 5} score: ", agamath.GetScore(metadata, b))
+	fmt.Println("{5, 5} effect: ", agamath.GetEffectScore(metadata, b))
+	fmt.Println("{5, 5} fair: ", agamath.GetFairnessScore(metadata, b))
 }
