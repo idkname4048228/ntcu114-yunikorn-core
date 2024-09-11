@@ -54,7 +54,9 @@ func (aga *AGA) randanInitValue() []*vector.Vector{
 	for i := 0; i < aga.aco.HyperParameter.AntNum; i++ {
 		candidateArray := make([]int, users*nodes)
 		for j := 0; j < len(candidateArray); j++ {
-			candidateArray[j] = int(r.Int63n(6))
+			userName := aga.metadata.UserData.GetName(j % users)
+			count := aga.metadata.UserData.GetUserAskCount(userName)
+			candidateArray[j] = int(r.Int63n(int64(count)))
 		}
 		candidate := vector.NewVectorByInt(candidateArray)
 		candidates = append(candidates, candidate)

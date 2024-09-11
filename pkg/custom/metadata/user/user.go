@@ -88,6 +88,10 @@ func (userData *UserData) GetUserAsks() [][]float64{
 	return userAsks
 }
 
+func (userData *UserData) GetUserAskCount(name string) int{
+	return userData.UserAskMap[name].AskCount
+}
+
 func (userData *UserData) GetName(index int) string {
 	return userData.UserNames[index]
 }
