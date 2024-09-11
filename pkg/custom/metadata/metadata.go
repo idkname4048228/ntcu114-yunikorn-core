@@ -42,7 +42,7 @@ func NewMetadata() *Metadata {
 }
 
 func (metadata *Metadata) GetUserAsks() [][]float64 {
-	return metadata.UserData.UserAsks
+	return metadata.UserData.GetUserAsks()
 }
 
 func (metadata *Metadata) GetNodeLimits() [][]float64 {
@@ -53,10 +53,10 @@ func (metadata *Metadata) GetTotalLimits() []float64 {
 	return metadata.NodeData.TotalLimits
 }
 
-func (metadata *Metadata) AddUser(ask *objects.AllocationAsk, app *objects.Application){ 
+func (metadata *Metadata) AddUser(ask *objects.AllocationAsk){ 
 	log.Log(log.Custom).Info("metadata add user")
 	metadata.Requests = append(metadata.Requests, ask)
-	metadata.UserData.AddUser(ask, app)
+	metadata.UserData.AddUser(ask)
 	log.Log(log.Custom).Info(fmt.Sprintf("GOA add ask: %v", ask.GetAllocationKey()))
 	log.Log(log.Custom).Info(fmt.Sprintf("GOA add ask: %v", ask.GetAllocatedResource()))
 }
@@ -82,7 +82,8 @@ func (metadata *Metadata) CalculateDRs() {
 		DR := make([]float64, 0)
 		DRRatioReciprocal := make([]float64, 0)
 
-		for _, askResources := range metadata.UserData.UserAsks {
+		userAsks := metadata.UserData.GetUserAsks()
+		for _, askResources := range userAsks {
 			maxRatio := 0.0
 
 			for i := 0; i < int(metadata.NodeData.ResourceCount); i++ {
@@ -106,7 +107,8 @@ func (metadata *Metadata) CalculateGlobalDRs() {
 	metadata.GlobalDRRatioReciprocals = make([]float64, metadata.UserData.UserCount)
 
 	totalLimits := metadata.GetTotalLimits()
-	for userIndex, askResources := range metadata.UserData.UserAsks {
+	userAsks := metadata.UserData.GetUserAsks()
+	for userIndex, askResources := range userAsks {
 		maxRatio := 0.0
 		for resourceIndex, limit := range totalLimits {
 			ratio := askResources[resourceIndex] / limit

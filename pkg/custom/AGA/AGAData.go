@@ -14,10 +14,10 @@ func (aga *AGA) AddNode(n *objects.Node) {
 	log.Log(log.Custom).Info(fmt.Sprintf("nodeCount is %v", aga.metadata.NodeData.NodeCount))
 }
 
-func (aga *AGA) AddUser(ask *objects.AllocationAsk, app *objects.Application) {
+func (aga *AGA) AddUser(ask *objects.AllocationAsk) {
 	aga.Lock()
 	defer aga.Unlock()
-	aga.metadata.AddUser(ask, app)
+	aga.metadata.AddUser(ask)
 	log.Log(log.Custom).Info(fmt.Sprintf("userCount is %v", aga.metadata.UserData.UserCount))
 }
 

@@ -14,10 +14,10 @@ func (aco *ACO) AddNode(n *objects.Node) {
 	log.Log(log.Custom).Info(fmt.Sprintf("userCount is %v", aco.metadata.NodeData.NodeCount))
 }
 
-func (aco *ACO) AddUser(ask *objects.AllocationAsk, app *objects.Application) {
+func (aco *ACO) AddUser(ask *objects.AllocationAsk) {
 	aco.Lock()
 	defer aco.Unlock()
-	aco.metadata.AddUser(ask, app)
+	aco.metadata.AddUser(ask)
 	log.Log(log.Custom).Info(fmt.Sprintf("userCount is %v", aco.metadata.UserData.UserCount))
 }
 

@@ -1431,7 +1431,7 @@ func (pc *PartitionContext) addAllocationAsk(siAsk *si.AllocationAsk) error {
 		return er
 	}
 	log.Log(log.Custom).Info("Custom algorithm add user")
-	AGA.GetAGA().AddUser(ask, app)
+	AGA.GetAGA().AddUser(ask)
 	return nil 
 }
 

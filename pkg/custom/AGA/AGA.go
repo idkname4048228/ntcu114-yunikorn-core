@@ -89,6 +89,7 @@ func (aga *AGA) Start() []int{
 }
 
 func (aga *AGA) GetAllocations() (allocs []*objects.Allocation) {
+	
 	aga.Lock()
 	defer aga.Unlock()
 	allocs = make([]*objects.Allocation, 0)
@@ -104,32 +105,21 @@ func (aga *AGA) GetAllocations() (allocs []*objects.Allocation) {
 
 	decision := aga.Start()
 
-
-	removeIndexs := make([]int, 0)
-	visited := make([]int, users)
-	for i := 0; i < users; i++ {
-		visited[i] = 0
-	}
-
 	for nodeIndex, _ := range aga.metadata.Nodes {
-		for userIndex, _ := range aga.metadata.Requests {
+		for userIndex := 0; userIndex < users; userIndex++ {
 			if distributeAmount := decision[nodeIndex*users+userIndex]; distributeAmount != 0 {
 				nodeId := aga.metadata.Nodes[nodeIndex]
-				ask := aga.metadata.Requests[userIndex]
-				alloc := objects.NewAllocation(nodeId, ask)
-				allocs = append(allocs, alloc)
-				if visited[userIndex] == 0 {
-					removeIndexs = append([]int{userIndex}, removeIndexs...)
-					visited[userIndex] = 1
+
+				name := aga.metadata.UserData.GetName(userIndex)
+				asks := aga.metadata.UserData.PopAsks(name, distributeAmount)
+				for _, ask := range asks {
+					alloc := objects.NewAllocation(nodeId, ask)
+					allocs = append(allocs, alloc)
 				}
-
 			}
-
 		}
 	}
 
-	for _, index := range removeIndexs {
-		aga.RemoveUser(index)
-	}
+	aga.metadata.UserData.Update()
 	return allocs
 }

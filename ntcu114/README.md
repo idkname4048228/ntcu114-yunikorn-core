@@ -4,12 +4,14 @@
 已經完成
 
 同時完成的還有：
+- 現在是排程 Application 了
+
 - GOA 的重構
 
 - GOA 的問題 (go 與 python 結果不相同)
   結果是因為 colab 前面的程式碼沒有執行到，所以結果會是之前的測試資料
 
-- CAO 的開發
+- ACO 的開發
   python colab 在 [這裡](https://colab.research.google.com/drive/1XJ8S49GLkDJ2flS6QoQmsuqi6kbpRcPA?usp=sharing)
 
 - scheduler 的排程間隔
@@ -27,8 +29,8 @@
     0.9 的計算結果是暫時的，我需要的公平性情境是「解裡面最大值必須小於最小值的兩倍」，而用了幾個測資發現 threshold 是 0.9 ，所以先設定這個數字，之後再看有沒有數學證明
 
 
-## 之前的目標： CAO (螞蟻演算法)
-被要求加速進度，而且 CAO 有需設計公式的問題，短時間內解決不了
+## 之前的目標： ACO (螞蟻演算法)
+被要求加速進度，而且 ACO 有需設計公式的問題，短時間內解決不了
 
 ### 試著利用外接的程式檔案
 實作請參考[筆記](https://hackmd.io/@ntcu-k8s/S1tny9dG0)

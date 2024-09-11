@@ -19,7 +19,7 @@ func (goa *GOA) AddUser(ask *objects.AllocationAsk, app *objects.Application) {
 	goa.Lock()
 	defer goa.Unlock()
 	goa.metadata.UserData.UserCount += 1
-	goa.metadata.AddUser(ask, app)
+	goa.metadata.AddUser(ask)
 	log.Log(log.Custom).Info(fmt.Sprintf("userCount is %v", goa.metadata.UserData.UserCount))
 }
 

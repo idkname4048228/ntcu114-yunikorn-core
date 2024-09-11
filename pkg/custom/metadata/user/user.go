@@ -1,6 +1,7 @@
 package UserData
 
 import (
+	"math"
 	"sync"
 
 	"github.com/apache/yunikorn-core/pkg/log"
@@ -8,27 +9,32 @@ import (
 )
 
 type UserData struct {
-	UserCount      	int
-	Requests        	[]string
-	UserNames		[]string
 	ResourceTypes  	[]string
-	UserAsks	 	[][]float64
+
+	UserCount      	int
+	UserNames		[]string
+	UserAskMap 		map[string]*AskData
 
 	sync.RWMutex
+}
+
+type AskData struct {
+	AskCount		int
+	UserAsks	 	[]float64
+	Requests		[]*objects.AllocationAsk
 }
 
 func NewUserData(ResourceTypes []string) *UserData {
 	return &UserData{
 		UserCount:  0,
-		Requests:  make([]string, 0),
 		UserNames: make([]string, 0),
 		ResourceTypes:   ResourceTypes,
-		UserAsks :make([][]float64, 0),
+		UserAskMap : make(map[string]*AskData),
 	}
 }
 
 // Parse the vcore and memory in node
-func (userData *UserData) AddUser(ask *objects.AllocationAsk, app *objects.Application) {
+func (userData *UserData) AddUser(ask *objects.AllocationAsk) {
 	log.Log(log.Custom).Info("userdata add user")	
 
 	userData.Lock()
@@ -38,29 +44,91 @@ func (userData *UserData) AddUser(ask *objects.AllocationAsk, app *objects.Appli
 		return 
 	}
 
-	userData.Requests = append(userData.Requests, ask.GetAllocationKey()) 
-	userData.UserCount += 1;
-	
+	value, exist := userData.UserAskMap[ask.GetApplicationID()]
+
+	if !exist {
+		userData.UserCount += 1;
+
+		askdata := &AskData{
+			AskCount: 0, 
+			UserAsks: make([]float64, len(userData.ResourceTypes)),
+			Requests: make([]*objects.AllocationAsk, 0),
+		}
+		userData.UserAskMap[ask.GetApplicationID()] = askdata
+		userData.UserNames = append(userData.UserNames, ask.GetApplicationID())
+
+		value = userData.UserAskMap[ask.GetApplicationID()]
+		value.UserAsks = userData.praseAskLimit(ask)
+	}
+
+	value.AskCount += 1
+	value.Requests = append(value.Requests, ask)
+}
+
+func (userData *UserData) praseAskLimit(ask *objects.AllocationAsk) []float64{
 	userAsk := make([]float64, len(userData.ResourceTypes))	
 
 	curResource := ask.GetAllocatedResource().Resources
 	for index, targetType := range userData.ResourceTypes {
 		userAsk[index] += float64(curResource[targetType])	
 	}
+	return userAsk
+}
 
-	userData.UserAsks = append(userData.UserAsks, userAsk)
+func (userData *UserData) GetUserAsks() [][]float64{
+	userData.Lock()
+	defer userData.Unlock()
+	names := userData.UserNames
+	askMap := userData.UserAskMap
+	userAsks := make([][]float64, 0)
+	for _, name := range names {
+		ask := askMap[name].UserAsks
+		userAsks = append(userAsks, ask)	
+	}
+	return userAsks
+}
+
+func (userData *UserData) GetName(index int) string {
+	return userData.UserNames[index]
+}
+
+func (userData *UserData) Update() {
+	names := userData.UserNames
+
+	for i := len(names) - 1; i >= 0; i-- {
+		name := names[i]
+		if userData.UserAskMap[name].AskCount == 0 {
+			delete(userData.UserAskMap, name)
+			userData.RemoveUser(i)
+		}
+	}
+}
+
+func (userData *UserData) PopAsks(user string, amount int) []*objects.AllocationAsk{
+	askData := userData.UserAskMap[user]
+
+	asks := make([]*objects.AllocationAsk, 0)
+	elements := math.Min(float64(amount), float64(askData.AskCount))
+
+	for i, ask := range askData.Requests {
+		asks = append(asks, ask)
+		if i == int(elements) {
+			break
+		}
+	}
+
+	askData.AskCount -= int(elements)
+
+	return asks
 }
 
 func (userData *UserData) RemoveUser(index int) {
 	userData.UserCount -= 1
-	userData.Requests = append(userData.Requests[:index], userData.Requests[index + 1:]...)
-	userData.UserAsks = append(userData.UserAsks[:index], userData.UserAsks[index + 1:]...)
+	userData.UserNames = append(userData.UserNames[:index], userData.UserNames[index + 1:]...)
 }
+
 // make test easy 
 func (userData *UserData) AddUserDirectly(userName string, userAsk []float64) {
 	userData.UserCount += 1
 	userData.UserNames = append(userData.UserNames, userName)
-	userData.Requests = append(userData.Requests, userName) 
-
-	userData.UserAsks = append(userData.UserAsks, userAsk)
 }
