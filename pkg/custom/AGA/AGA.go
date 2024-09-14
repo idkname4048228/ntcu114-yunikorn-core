@@ -107,11 +107,10 @@ func (aga *AGA) GetAllocations() (allocs []*objects.Allocation) {
 
 	decision := aga.Start()
 
-	for nodeIndex, _ := range aga.metadata.Nodes {
+	for nodeIndex, nodeId := range aga.metadata.Nodes {
 		for userIndex := 0; userIndex < users; userIndex++ {
 			if distributeAmount := decision[nodeIndex*users+userIndex]; distributeAmount != 0 {
-				nodeId := aga.metadata.Nodes[nodeIndex]
-
+				
 				name := aga.metadata.UserData.GetName(userIndex)
 				asks := aga.metadata.UserData.PopAsks(name, distributeAmount)
 				for _, ask := range asks {

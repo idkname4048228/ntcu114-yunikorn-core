@@ -2,6 +2,7 @@ package UserData
 
 import (
 	"math"
+	// "fmt"
 	"sync"
 
 	"github.com/apache/yunikorn-core/pkg/log"
@@ -112,16 +113,15 @@ func (userData *UserData) PopAsks(user string, amount int) []*objects.Allocation
 	askData := userData.UserAskMap[user]
 
 	asks := make([]*objects.AllocationAsk, 0)
-	elements := math.Min(float64(amount), float64(askData.AskCount))
+	elements := int(math.Min(float64(amount), float64(askData.AskCount)))
 
-	for i, ask := range askData.Requests {
-		asks = append(asks, ask)
-		if i == int(elements) {
-			break
-		}
+	for len(asks) != elements {
+		asks = append(asks, askData.Requests[0])
+		askData.Requests = askData.Requests[1:]
+		askData.AskCount -= 1;
 	}
 
-	askData.AskCount -= int(elements)
+	// log.Log(log.Custom).Info(fmt.Sprintf("asks length is %v", len(asks)))
 
 	return asks
 }
