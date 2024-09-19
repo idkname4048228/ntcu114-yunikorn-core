@@ -22,12 +22,14 @@ import (
 type ACOHyperParameter struct {
 	AntNum			int
 	Epochs			int
+	Steps 			int
 }
 
-func NewACOHyperParameter(antNum int, epochs int) *ACOHyperParameter {
+func NewACOHyperParameter(antNum int, epochs int, steps int) *ACOHyperParameter {
 	return &ACOHyperParameter{
 		AntNum:        antNum,
 		Epochs:        epochs,
+		Steps: 		   steps,
 	}
 }
 
@@ -109,6 +111,9 @@ func findNeighbors(target []float64, h ACOHeap.CoordinateHeap) []*ACOHeap.Coordi
 				Value:       1.0, // 預設值
 			})
 
+			if target[i] == 0 {
+				continue
+			}
 			neighborCoordNegative := make([]float64, dimensions)
 			copy(neighborCoordNegative, target)
 			neighborCoordNegative[i] -= 1 // 相反方向
@@ -126,15 +131,17 @@ func (aco *ACO) Start(candidates []*vector.Vector) {
 //ACO hyper parameter
 	numAnts := aco.HyperParameter.AntNum
 	epochs := aco.HyperParameter.Epochs
+	steps := aco.HyperParameter.Steps
 
-	users := aco.metadata.UserData.UserCount
-	nodes := aco.metadata.NodeData.NodeCount
+	// users := aco.metadata.UserData.UserCount
+	// nodes := aco.metadata.NodeData.NodeCount
 
 	aco.candidates = candidates
 	aco.pheromone = &ACOHeap.CoordinateHeap{}
 	heap.Init(aco.pheromone)
 
 	for iteration := 0; iteration < epochs; iteration++ {
+		// log.Log(log.Custom).Info(fmt.Sprintf("iteration %v start", iteration))
 		paths := make([][][]float64, 0)
 		scores := make([]float64, 0)
 		best_score := math.MaxFloat64
@@ -144,7 +151,6 @@ func (aco *ACO) Start(candidates []*vector.Vector) {
 		
 			current_position := aco.candidates[ant_index]
 			path = append(path, current_position.ToArray())
-			steps := users*nodes
 
 			for step := 0; step < steps; step++ {
 				neighbors := findNeighbors(current_position.ToArray(), *aco.pheromone)

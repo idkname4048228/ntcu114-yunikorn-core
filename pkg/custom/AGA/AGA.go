@@ -7,6 +7,7 @@ import (
 	"time"
 
 	Metadata "github.com/apache/yunikorn-core/pkg/custom/metadata"
+	agamath "github.com/apache/yunikorn-core/pkg/custom/math"
 
 	"github.com/apache/yunikorn-core/pkg/custom/ACO"
 	"github.com/apache/yunikorn-core/pkg/custom/GOA"
@@ -53,19 +54,44 @@ func (aga *AGA) randanInitValue() []*vector.Vector{
 
 	for i := 0; i < aga.aco.HyperParameter.AntNum; i++ {
 		candidateArray := make([]int, users*nodes)
-		for j := 0; j < len(candidateArray); j++ {
-			userName := aga.metadata.UserData.GetName(j % users)
+		distributeAmount := make([]int, users)
+
+		for j := 0; j < users; j++ {
+			userName := aga.metadata.UserData.GetName(j)
 			count := aga.metadata.UserData.GetUserAskCount(userName)
-			candidateArray[j] = int(r.Int63n(int64(count)))
+			distributeAmount[j] = count;
 		}
+
+		for j := 0; j < len(candidateArray); j++ {
+			userIndex := j % users;
+			remains := distributeAmount[userIndex]
+			tmp := int64(float64(remains) * float64(i) / float64(aga.aco.HyperParameter.AntNum))
+			// log.Log(log.Custom).Info(fmt.Sprintf("%v * %v = %v", remains, float64(i) / float64(aga.aco.HyperParameter.AntNum), tmp))
+			if tmp <= 0 {
+				tmp = 1
+			}
+			// log.Log(log.Custom).Info(fmt.Sprintf("%v", tmp))
+			amount := r.Int63n(tmp)
+
+			candidateArray[j] = int(amount)
+			distributeAmount[userIndex] -= int(amount)
+		}
+
 		candidate := vector.NewVectorByInt(candidateArray)
 		candidates = append(candidates, candidate)
+
+		// log.Log(log.Custom).Info(fmt.Sprintf("candidate score is %v", agamath.GetScore(aga.metadata, candidate)))
+
 	} 
 	return candidates
 }
 
 func (aga *AGA) Start() []int{
-	ACOParameter := ACO.NewACOHyperParameter(ACO_NumAnt, ACO_Epochs)
+
+	users := aga.metadata.UserData.UserCount;
+	nodes := aga.metadata.NodeData.NodeCount;
+
+	ACOParameter := ACO.NewACOHyperParameter(ACO_NumAnt, ACO_Epochs, users*nodes * ACO_Steps)
 	GOAParameter := GOA.NewGOAHyperParameter(
 			GOA_iterations, 
 			GOA_cMax, 
@@ -83,6 +109,11 @@ func (aga *AGA) Start() []int{
 	aga.metadata.CalculateDRs()
 
 	aga.aco.Start(aga.randanInitValue())
+
+	ACOBest := aga.aco.GetCandidate(1)
+	
+	log.Log(log.Custom).Info(fmt.Sprintf("aco best is %v, and score is %v", ACOBest, agamath.GetScore(aga.metadata, ACOBest[0])))
+
 	desision := aga.goa.Start(aga.aco.GetCandidate(GOA_grasshopperAmount))
 
 	log.Log(log.Custom).Info(fmt.Sprintf("desision is %v", desision))
@@ -107,6 +138,8 @@ func (aga *AGA) GetAllocations() (allocs []*objects.Allocation) {
 
 	decision := aga.Start()
 
+	result := make([]int, users)
+
 	for nodeIndex, nodeId := range aga.metadata.Nodes {
 		for userIndex := 0; userIndex < users; userIndex++ {
 			if distributeAmount := decision[nodeIndex*users+userIndex]; distributeAmount != 0 {
@@ -117,9 +150,21 @@ func (aga *AGA) GetAllocations() (allocs []*objects.Allocation) {
 					alloc := objects.NewAllocation(nodeId, ask)
 					allocs = append(allocs, alloc)
 				}
+				result[userIndex] += distributeAmount
 			}
 		}
 	}
+	
+	s := ""
+	for i, num := range result {
+		if i == 0 {
+			s += fmt.Sprintf("user result is: %v", num) 
+		} else {
+			s += fmt.Sprintf(", %v", num) 
+		}
+	}
+
+	log.Log(log.Custom).Info(s)
 
 	aga.metadata.UserData.Update()
 	return allocs

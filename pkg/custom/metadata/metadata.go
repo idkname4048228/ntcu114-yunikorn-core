@@ -1,7 +1,6 @@
 package metadata
 
 import (
-	"fmt"
 	"math"
 	"sync"
 
@@ -11,7 +10,6 @@ import (
 	UserData "github.com/apache/yunikorn-core/pkg/custom/metadata/user"
 
 	sicommon "github.com/apache/yunikorn-scheduler-interface/lib/go/common"
-	"github.com/apache/yunikorn-core/pkg/log"
 )
 
 var (
@@ -54,24 +52,18 @@ func (metadata *Metadata) GetTotalLimits() []float64 {
 }
 
 func (metadata *Metadata) AddUser(ask *objects.AllocationAsk){ 
-	log.Log(log.Custom).Info("metadata add user")
 	metadata.Requests = append(metadata.Requests, ask)
 	metadata.UserData.AddUser(ask)
-	log.Log(log.Custom).Info(fmt.Sprintf("GOA add ask: %v", ask.GetAllocationKey()))
-	log.Log(log.Custom).Info(fmt.Sprintf("GOA add ask: %v", ask.GetAllocatedResource()))
 }
 
 func (metadata *Metadata) RemoveUser(index int) {
-	log.Log(log.Custom).Info(fmt.Sprintf("removing index %v, and length is %v", index, len(metadata.Requests)))
 	metadata.Requests = append(metadata.Requests[:index], metadata.Requests[index + 1:]...)
 	metadata.UserData.RemoveUser(index)
-	log.Log(log.Custom).Info(fmt.Sprintf("now the length is %v", len(metadata.Requests)))
 }
 
 func (metadata *Metadata) AddNode(node *objects.Node) {
 	metadata.Nodes = append(metadata.Nodes, node.NodeID)
 	metadata.NodeData.AddNode(node)
-	log.Log(log.Custom).Info(fmt.Sprintf("add node: %v", node.NodeID))
 }
 
 func (metadata *Metadata) CalculateDRs() {

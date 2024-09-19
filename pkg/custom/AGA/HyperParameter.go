@@ -2,8 +2,9 @@ package AGA
 
 // ACO hyperParameter
 const (
-	ACO_NumAnt 	= 30
+	ACO_NumAnt 	= 50
 	ACO_Epochs	= 30
+	ACO_Steps	= 1
 )
 
 // GOA hyperParameter

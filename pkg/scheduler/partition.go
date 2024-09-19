@@ -551,7 +551,6 @@ func (pc *PartitionContext) AddNode(node *objects.Node, existingAllocations []*o
 		return err
 	}
 
-	log.Log(log.Custom).Info("Custom algorithm add Node")
 	AGA.GetAGA().AddNode(node)
 
 	// Add allocations that exist on the node when added
@@ -1430,7 +1429,6 @@ func (pc *PartitionContext) addAllocationAsk(siAsk *si.AllocationAsk) error {
 	if er := app.AddAllocationAsk(ask); er != nil {
 		return er
 	}
-	log.Log(log.Custom).Info("Custom algorithm add user")
 	AGA.GetAGA().AddUser(ask)
 	return nil 
 }

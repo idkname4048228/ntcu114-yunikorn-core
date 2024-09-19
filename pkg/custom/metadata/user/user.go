@@ -36,7 +36,7 @@ func NewUserData(ResourceTypes []string) *UserData {
 
 // Parse the vcore and memory in node
 func (userData *UserData) AddUser(ask *objects.AllocationAsk) {
-	log.Log(log.Custom).Info("userdata add user")	
+	// log.Log(log.Custom).Info("userdata add user")	
 
 	userData.Lock()
 	defer userData.Unlock()
