@@ -168,11 +168,15 @@ func (cc *ClusterContext) customSchedule() bool {
 		}
 
 		schedulingStart := time.Now()
+		metrics.GetCustomMetrics().SetDecisionTimeDuration(AGA.GetLastDuration())
 
 		allocs := AGA.GetAGA().GetAllocations()
 		
 		if len(allocs) != 0 {
-			log.Log(log.Custom).Info("AGA successful")
+			log.Log(log.Custom).Info("schedule finish")
+		} else {
+			metrics.GetCustomMetrics().SetFinalDecisionScore(0)
+			metrics.GetCustomMetrics().SetInitialCandidateAvgScore(0)
 		}
 
 		for _, alloc := range allocs {

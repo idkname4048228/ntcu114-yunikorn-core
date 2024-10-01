@@ -31,6 +31,7 @@ const (
 	SchedulerSubsystem = "scheduler"
 	// EventSubsystem - subsystem name used by event cache
 	EventSubsystem = "event"
+	CustomSubsystem = "custom"
 	// MetricNameInvalidByteReplacement byte used to replace invalid bytes in prometheus metric names
 	MetricNameInvalidByteReplacement = '_'
 )
@@ -44,6 +45,8 @@ type Metrics struct {
 	event     *EventMetrics
 	runtime   *RuntimeMetrics
 	lock      locking.RWMutex
+
+	custom	 *CustomMetrics
 }
 
 func init() {
@@ -54,6 +57,7 @@ func init() {
 			event:     initEventMetrics(),
 			lock:      locking.RWMutex{},
 			runtime:   initRuntimeMetrics(),
+			custom:	   initCustomMetrics(),
 		}
 	})
 }
@@ -67,6 +71,11 @@ func Reset() {
 		qm.Reset()
 	}
 	m.runtime.Reset()
+	m.custom.Reset()
+}
+
+func GetCustomMetrics() *CustomMetrics {
+	return m.custom
 }
 
 func GetSchedulerMetrics() *SchedulerMetrics {

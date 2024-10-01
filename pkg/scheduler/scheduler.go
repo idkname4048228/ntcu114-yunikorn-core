@@ -82,7 +82,7 @@ func (s *Scheduler) internalSchedule() {
 		// case <-s.activityPending:
 			// activity pending
 		case <-time.After(30 * time.Second):
-			log.Log(log.Custom).Info("schedule anyway")
+			log.Log(log.Custom).Info("30s schedule")
 			// timeout, run scheduler anyway
 		}
 

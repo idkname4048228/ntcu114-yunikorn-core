@@ -8,9 +8,10 @@ import (
 	"time"
 
 	goamath "github.com/apache/yunikorn-core/pkg/custom/GOA/math"
-	agamath "github.com/apache/yunikorn-core/pkg/custom/math" 
+	agamath "github.com/apache/yunikorn-core/pkg/custom/math"
 	"github.com/apache/yunikorn-core/pkg/custom/math/vector"
 	Metadata "github.com/apache/yunikorn-core/pkg/custom/metadata"
+	"github.com/apache/yunikorn-core/pkg/metrics"
 
 	"github.com/apache/yunikorn-core/pkg/log"
 	"github.com/apache/yunikorn-core/pkg/scheduler/objects"
@@ -118,7 +119,7 @@ func (goa *GOA) calculateDomainResources() {
 		fairness_array = append(fairness_array, value...)
 	}
 	goa.fairness_vector = vector.NewVector(fairness_array)
-	log.Log(log.Custom).Info(fmt.Sprintf("fairness_vector is %v", goa.fairness_vector))
+	// log.Log(log.Custom).Info(fmt.Sprintf("fairness_vector is %v", goa.fairness_vector))
 	
 }
 
@@ -144,13 +145,23 @@ func (goa *GOA) Start(candidates []*vector.Vector) (decision []int) {
 	goa.grasshoppers = candidates
 	goa.bestGrasshopper = vector.WithSize(users * nodes)
 
+	scoreSum := 0.0
+
 	for _, candidate := range(candidates) {
 		value := agamath.GetScore(goa.metadata, candidate)
+		scoreSum += value
 		if minValue > value {
 			minValue = value
 			goa.bestGrasshopper = candidate
 		}
 	}
+
+	avgScore := scoreSum / float64(goa.hyperParameter.grasshopperAmount)
+	if avgScore == math.Inf(1) {
+		avgScore = -1
+	}
+
+	metrics.GetCustomMetrics().SetInitialCandidateAvgScore(avgScore)
 
 	// log.Log(log.Custom).Info(fmt.Sprintf("grasshoppers: %v", goa.grasshoppers))
 	// log.Log(log.Custom).Info(fmt.Sprintf("best grasshopper: %v", goa.bestGrasshopper))
@@ -184,7 +195,7 @@ func (goa *GOA) Start(candidates []*vector.Vector) (decision []int) {
 		// log.Log(log.Custom).Info(fmt.Sprintf("best grasshopper: %v", goa.bestGrasshopper))
 	}
 
-	log.Log(log.Custom).Info(fmt.Sprintf("Best solution: %v", goa.bestGrasshopper))
+	// log.Log(log.Custom).Info(fmt.Sprintf("Best solution: %v", goa.bestGrasshopper))
 
 	decision = goa.bestGrasshopper.ToIntArray()
 	log.Log(log.Custom).Info(fmt.Sprintf("decision: %v", decision))
@@ -235,8 +246,8 @@ func (goa *GOA) GetAllocations() (allocs []*objects.Allocation) {
 		visited[i] = 0
 	}
 
-	for nodeIndex, _ := range goa.metadata.Nodes {
-		for userIndex, _ := range goa.metadata.Requests {
+	for nodeIndex := 0; nodeIndex < len(goa.metadata.Nodes); nodeIndex++ {
+		for userIndex := 0; userIndex < len(goa.metadata.Requests); userIndex++ {
 			if distributeAmount := decision[nodeIndex*users+userIndex]; distributeAmount != 0 {
 				nodeId := goa.metadata.Nodes[nodeIndex]
 				ask := goa.metadata.Requests[userIndex]

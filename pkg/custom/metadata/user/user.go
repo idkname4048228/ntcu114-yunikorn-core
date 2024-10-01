@@ -73,6 +73,7 @@ func (userData *UserData) praseAskLimit(ask *objects.AllocationAsk) []float64{
 	for index, targetType := range userData.ResourceTypes {
 		userAsk[index] += float64(curResource[targetType])	
 	}
+	
 	return userAsk
 }
 
