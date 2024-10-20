@@ -1412,6 +1412,44 @@ func (sq *Queue) TryAllocate(iterator func() NodeIterator, fullIterator func() N
 	return nil
 }
 
+func (sq *Queue) TryCustomAllocate(selectApp *Application, selectNode *Node) *Allocation{
+	if sq.IsLeafQueue() {
+		// get the headroom
+		headRoom := sq.getHeadRoom()
+
+		// process the apps (filters out app without pending requests)
+		runnableInQueue := sq.canRunApp(selectApp.ApplicationID)
+		runnableByUserLimit := ugm.GetUserManager().CanRunApp(sq.QueuePath, selectApp.ApplicationID, selectApp.user)
+		selectApp.updateRunnableStatus(runnableInQueue, runnableByUserLimit)
+		if selectApp.IsAccepted() && (!runnableInQueue || !runnableByUserLimit) {
+			return nil
+		}
+		alloc := selectApp.tryCustomAllocate(headRoom, selectNode)
+		if alloc != nil {
+			log.Log(log.SchedQueue).Info("allocation found on queue",
+				zap.String("queueName", sq.QueuePath),
+				zap.String("appID", selectApp.ApplicationID),
+				zap.Stringer("allocation", alloc))
+			// if the app is still in Accepted state we're allocating placeholders.
+			// we want to count these apps as running
+			if selectApp.IsAccepted() {
+				sq.setAllocatingAccepted(selectApp.ApplicationID)
+			}
+			return alloc
+		}
+	} else {
+		// process the child queues (filters out queues without pending requests)
+		for _, child := range sq.sortQueues() {
+			alloc := child.TryCustomAllocate(selectApp, selectNode)
+			if alloc != nil {
+				return alloc
+			}
+		}
+	}
+	return nil
+
+}
+
 // TryPlaceholderAllocate tries to replace a placeholders with a real allocation.
 // This only gets called if there is a pending request on this queue or its children.
 // This is a depth first algorithm: descend into the depth of the queue tree first. Child queues are sorted based on

@@ -1,20 +1,23 @@
 # NTCU 114級 畢業專題
 
-## 已完成 AGA，將需要資訊透過 prometheus exports 出來
+## 修正 node 資源無變動的問題
 
-在 `/pkg/metrics/` 下面新增一個 `custom.go` ，裡面存放了需要資訊的 metric ，同時也有去調整了 `/pkg/metrics/init.go` 內部的程式碼。
+為了瞭解 node 的資源量變動，在 `/pkg/metrics/custom.go` 裡新增一個 metric。將其用 grafana 顯示出來後是每個時間軸都一樣的資源量。
 
-## score 數值過大
-執行 YuniKorn 就能在 grafana 那邊新增圖表。從 grafana 的圖可以看到有關 score 的數值非常大
-![AGAGrafana](./AGAGrafana.png)
+原因是在自己寫的 node.go (`/pkg/custom/metadata/node/node.go`) 裡，雖然有將 node 的指標作為輸入，但並沒有去紀錄節點資源量的變動，所以才會所有時間軸都一樣。
 
-目前的「效率評分」是使用「候選解所產生資源量」到「叢集資源量上限」的距離作為分數，缺點在於數值可能過大，尤其需要除以公平性分數 (1 ~ 1/user)。
-預計使用「使用比例(0% ~ 100%)」做為新的「效率分數」。
+在簡單瀏覽過 source code (`/pkg/scheduler/objects/node.go`) 後，發現有特定函式可以使用，但在套用過後有個新的問題， pod 在刪除後不會返還資源。
 
-## 分配全零
-理論上來說，如果初始解有一個 score 不為無限大，則演算法應收斂至附近點，那麼就有可能有一個候選解來代替全零的變數初始值。
+## 修正排程方法
 
-但是我們可以從分配全零的比例(左上)得出，即便 AGA 改善了 GOA 的「要求初始解品質」的問題，卻仍然會遇到類似問題。
-當然也有可能是演算法內部的問題，但調整亂數產生的規則壹就可以改善此問題。
+因為上面的新問題，我在瀏覽過 source code 後，發現需要更新資訊的不只有 node ，還有如 application 與 allocation 等等。因為在刪除時， source code 會去檢查 application 有沒有 allocate
+，但由於沒有更新對應的 application ，所以它沒有辦法將執行完的 pod 刪除。
 
-目前將打算以「使用者可分配數量」代替「使用者要求分配數量」作為隨機數的上限。舉個例子，如果使用者要求 1000 個 pod ，而每個 pod 要求 (1 Gi, 0.5 vCore)，當前的隨機數上限為 1000，預計將改為(叢集上限 / 主導資源) 作為上限。
+為了避免需要寫太多更新資訊的程式碼，我將 `/pkg/scheduler/partition.go` 、 `/pkg/scheduler/objects/queue.go` 、 `/pkg/scheduler/objects/application.go` 這三個程式碼檔案新增了關於自己的排程方法，實際實作則是抄原先的 tryAllocate 的程式碼，只是將一些沒有用到的程式碼區塊刪除。
+
+## 目前問題： master node 有 taint ，無法將 pod 放上去
+之後須撰寫相關程式碼，目前的排成將 master node 排除在外。
+另外，由於須排程的 allocationKey 也是放在自己寫的下面，之後需要將 YuniKorn 內部的資訊題取出來做排程，而不是自己記錄。還有 YuniKorn 原生會有 allocationKey 的排序，所以如果要對每個 pod 做更細部的管理的話，需要再話。
+
+目前成果為：
+![cpuUsagePanel](./cpuUsagePanel.png)

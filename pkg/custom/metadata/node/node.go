@@ -4,10 +4,10 @@ import (
 	"github.com/apache/yunikorn-core/pkg/scheduler/objects"
 )
 
-
 type NodeData struct {
 	NodeCount      int
 	NodeIDs        []string
+	Nodes 		   []*objects.Node
 	ResourceCount  int
 	ResourceTypes  []string
 	ResourceLimits [][]float64
@@ -26,8 +26,42 @@ func NewNodeData(ResourceTypes []string) *NodeData {
 	}
 }
 
+func (nodeData *NodeData) UpdateLimits() {
+	nodeLimits := make([][]float64, 0)
+	systemLimit := make([]float64, 2)
+
+	for _, node := range nodeData.Nodes {
+		limits := make([]float64, 0)
+		nodeAvaiResources := *node.GetAvailableResource()
+
+		for i, resourceType := range nodeData.ResourceTypes {
+			resourceValue := float64(nodeAvaiResources.Resources[resourceType])
+
+			limits = append(limits, resourceValue)
+
+			systemLimit[i] += resourceValue
+		}
+		nodeLimits = append(nodeLimits, limits)
+	}
+
+	nodeData.ResourceLimits = nodeLimits
+	nodeData.TotalLimits = systemLimit
+}
+
+func (nodeData *NodeData) GetNodeLimits() [][]float64{
+	return nodeData.ResourceLimits
+}
+
+func (nodeData *NodeData) GetTotalLimits() []float64{
+	return nodeData.TotalLimits
+}
+
 // Parse the vcore and memory in node
 func (nodeData *NodeData) AddNode(n *objects.Node) {
+	if n.NodeID == "yk0" {
+		return 
+	}
+	nodeData.Nodes = append(nodeData.Nodes, n)
 	nodeData.NodeIDs = append(nodeData.NodeIDs, n.NodeID)
 	nodeData.NodeCount += 1;
 	

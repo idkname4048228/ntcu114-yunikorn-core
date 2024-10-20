@@ -172,6 +172,13 @@ func (aga *AGA) GOAStart() []int{
 	return desision
 }
 
+func (aga *AGA) updateCPUUsage() {
+	for id, limits := range aga.metadata.GetNodeLimits() {
+		metrics.GetCustomMetrics().SetCustomCPUUsage(fmt.Sprintf("node_%v", id), limits[0])
+	}
+
+}
+
 func (aga *AGA) GetAllocations() (allocs []*objects.Allocation) {
 	
 	aga.Lock()
@@ -183,6 +190,9 @@ func (aga *AGA) GetAllocations() (allocs []*objects.Allocation) {
 
 	users := aga.metadata.UserData.UserCount
 	nodes := aga.metadata.NodeData.NodeCount
+
+	aga.metadata.UpdateLimits()
+	aga.updateCPUUsage()
 
 	if users * nodes == 0 {
 		return 

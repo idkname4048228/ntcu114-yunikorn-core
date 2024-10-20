@@ -43,12 +43,15 @@ func (metadata *Metadata) GetUserAsks() [][]float64 {
 	return metadata.UserData.GetUserAsks()
 }
 
+func (metadata *Metadata) UpdateLimits() {
+	metadata.NodeData.UpdateLimits()
+}
 func (metadata *Metadata) GetNodeLimits() [][]float64 {
-	return metadata.NodeData.ResourceLimits
+	return metadata.NodeData.GetNodeLimits()
 }
 
 func (metadata *Metadata) GetTotalLimits() []float64 {
-	return metadata.NodeData.TotalLimits
+	return metadata.NodeData.GetTotalLimits()
 }
 
 func (metadata *Metadata) AddUser(ask *objects.AllocationAsk){ 
@@ -62,8 +65,8 @@ func (metadata *Metadata) RemoveUser(index int) {
 }
 
 func (metadata *Metadata) AddNode(node *objects.Node) {
-	metadata.Nodes = append(metadata.Nodes, node.NodeID)
 	metadata.NodeData.AddNode(node)
+	metadata.Nodes = metadata.NodeData.NodeIDs
 }
 
 func (metadata *Metadata) CalculateDRs() {

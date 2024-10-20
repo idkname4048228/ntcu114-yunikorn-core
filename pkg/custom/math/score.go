@@ -4,9 +4,9 @@ import (
 	// "fmt"
 	"math"
 
-	// "github.com/apache/yunikorn-core/pkg/log"
 	"github.com/apache/yunikorn-core/pkg/custom/math/vector"
 	Metadata "github.com/apache/yunikorn-core/pkg/custom/metadata"
+	// "github.com/apache/yunikorn-core/pkg/log"
 )
 
 func GetEffectScore(metadata *Metadata.Metadata, candidate *vector.Vector) float64 {
@@ -39,7 +39,15 @@ func GetEffectScore(metadata *Metadata.Metadata, candidate *vector.Vector) float
 
 	totalLimitsVector := vector.NewVector(metadata.GetTotalLimits())
 	userTotalVector := vector.NewVector(userTotal)
-	return vector.Subtract(totalLimitsVector, userTotalVector).Norm()
+	totalLimitsDistance := totalLimitsVector.Norm()
+	userTotalDistance := userTotalVector.Norm()
+	
+	ratio := userTotalDistance / totalLimitsDistance
+
+	// 計算「空閒資源比例」。使用「使用者資源上限」除以「機器資源上限」，(1 - 所得比例) * 100 為「空閒資源佔比」
+	percentage := (1 - ratio) * 100
+
+	return percentage
 }
 
 func GetFairnessScore(metadata *Metadata.Metadata, candidate *vector.Vector) float64 {
@@ -76,9 +84,31 @@ func GetScore(metadata *Metadata.Metadata, candidate *vector.Vector) float64 {
 		return math.Inf(1)
 	}
 
+	// log.Log(log.Custom).Info(fmt.Sprintf("effect score is %v", effectScore))
+
+	// effectScore: 0 ~ 100
+	// fairnessScore: 1/len(user) ~ 1
+	// lenUser: len(user)
+	
 	if fairnessScore >= 0.9 {
-		return effectScore / 1.0
-	} else {
-		return effectScore / fairnessScore
+		fairnessScore = 1
 	}
+
+	score := effectScore / fairnessScore
+
+	scoreMin := 0.0
+	scoreMax := 100.0 * float64(metadata.UserData.UserCount)
+
+	// 正規化 score 到 0 ~ 100
+	normalizedScore := (score - scoreMin) / (scoreMax - scoreMin) * 100
+
+	// 保證正規化分數在 0 ~ 100 範圍內
+	if normalizedScore < 0 {
+	    normalizedScore = 0
+	} else if normalizedScore > 100 {
+	    normalizedScore = 100
+	}
+
+	// log.Log(log.Custom).Info(fmt.Sprintf("score is %v", normalizedScore))
+	return normalizedScore
 }

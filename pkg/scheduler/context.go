@@ -170,27 +170,31 @@ func (cc *ClusterContext) customSchedule() bool {
 		schedulingStart := time.Now()
 		metrics.GetCustomMetrics().SetDecisionTimeDuration(AGA.GetLastDuration())
 
-		allocs := AGA.GetAGA().GetAllocations()
+		preAllocs := AGA.GetAGA().GetAllocations()
 		
-		if len(allocs) != 0 {
+		if len(preAllocs) != 0 {
 			log.Log(log.Custom).Info("schedule finish")
 		} else {
 			metrics.GetCustomMetrics().SetFinalDecisionScore(0)
 			metrics.GetCustomMetrics().SetInitialCandidateAvgScore(0)
 		}
 
-		for _, alloc := range allocs {
-			if alloc != nil {
+		for _, alloc := range preAllocs {
+			appOfAlloc := psc.getApplication(alloc.GetApplicationID())
+			selectNode := psc.GetNode(alloc.GetNodeID())
+
+			realAlloc := psc.tryCustomAllocate(appOfAlloc, selectNode)
+			if realAlloc != nil {
 				metrics.GetSchedulerMetrics().ObserveSchedulingLatency(schedulingStart)
-				if alloc.GetResult() == objects.Replaced {
+				if realAlloc.GetResult() == objects.Replaced {
 					// communicate the removal to the RM
-					cc.notifyRMAllocationReleased(psc.RmID, alloc.GetReleasesClone(), si.TerminationType_PLACEHOLDER_REPLACED, "replacing allocationID: "+alloc.GetAllocationID())
+					cc.notifyRMAllocationReleased(psc.RmID, realAlloc.GetReleasesClone(), si.TerminationType_PLACEHOLDER_REPLACED, "replacing allocationID: "+realAlloc.GetAllocationID())
 				} else {
-					cc.notifyRMNewAllocation(psc.RmID, alloc)
+					cc.notifyRMNewAllocation(psc.RmID, realAlloc)
 				}
+				activity = true
 			}
 		}
-		activity = true
 	}
 	return activity
 }

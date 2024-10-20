@@ -936,6 +936,50 @@ func (sa *Application) canReplace(request *AllocationAsk) bool {
 	return false
 }
 
+func (sa *Application) tryCustomAllocate(headRoom *resources.Resource, selectNode *Node) *Allocation {
+	sa.Lock()
+	defer sa.Unlock()
+	if sa.sortedRequests == nil {
+		return nil
+	}
+	// calculate the users' headroom, includes group check which requires the applicationID
+	userHeadroom := ugm.GetUserManager().Headroom(sa.queuePath, sa.ApplicationID, sa.user)
+	// get all the requests from the app sorted in order
+	for _, request := range sa.sortedRequests {
+		if request.GetPendingAskRepeat() == 0 {
+			continue
+		}
+		// check if there is a replacement possible
+		if sa.canReplace(request) {
+			continue
+		}
+		// check if this fits in the users' headroom first, if that fits check the queues' headroom
+		// NOTE: preemption most likely will not help in this case. The chance that preemption helps is mall
+		// as the preempted allocation must be for the same user in a different queue in the hierarchy...
+		if !userHeadroom.FitInMaxUndef(request.GetAllocatedResource()) {
+			request.LogAllocationFailure(NotEnoughUserQuota, true) // error message MUST be constant!
+			request.setUserQuotaCheckFailed(userHeadroom)
+			continue
+		}
+		request.setUserQuotaCheckPassed()
+		request.SetSchedulingAttempted(true)
+
+		// resource must fit in headroom otherwise skip the request (unless preemption could help)
+		if !headRoom.FitInMaxUndef(request.GetAllocatedResource()) {
+			// attempt preemption
+			request.LogAllocationFailure(NotEnoughQueueQuota, true) // error message MUST be constant!
+			request.setHeadroomCheckFailed(headRoom, sa.queuePath)
+			continue
+		}
+		request.setHeadroomCheckPassed(sa.queuePath) 
+
+		alloc := sa.tryNode(selectNode, request)
+
+		return alloc
+	}
+	return nil
+}
+
 // tryAllocate will perform a regular allocation of a pending request, includes placeholders.
 func (sa *Application) tryAllocate(headRoom *resources.Resource, allowPreemption bool, preemptionDelay time.Duration, preemptAttemptsRemaining *int, nodeIterator func() NodeIterator, fullNodeIterator func() NodeIterator, getNodeFn func(string) *Node) *Allocation {
 	sa.Lock()
